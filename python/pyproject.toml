@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "warmwinter"
+version = "0.1.0"
+description = "Python SDK for the Warm Winter trust gate — is this AI/agent action trustworthy enough to act on, or escalate?"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Warm Winter" }]
+keywords = ["llm", "agents", "ai", "routing", "calibration", "trust", "gateway"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []  # stdlib only (urllib) — drops into any environment
+
+[project.urls]
+Homepage = "https://warmwinter.io"
+Documentation = "https://warmwinter.io/gate"
+Source = "https://github.com/ricovigil1/warmwinter-sdk/tree/main/python"
+
+[tool.setuptools]
+py-modules = ["warmwinter"]

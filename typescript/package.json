@@ -1,0 +1,29 @@
+{
+  "name": "warmwinter",
+  "version": "0.1.0",
+  "description": "TypeScript/JavaScript SDK for the Warm Winter trust gate — is this AI/agent action trustworthy enough to act on, or escalate?",
+  "license": "MIT",
+  "author": "Warm Winter",
+  "type": "module",
+  "main": "./dist/warmwinter.js",
+  "module": "./dist/warmwinter.js",
+  "types": "./dist/warmwinter.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/warmwinter.d.ts",
+      "import": "./dist/warmwinter.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["llm", "agents", "ai", "routing", "calibration", "trust", "gateway"],
+  "homepage": "https://warmwinter.io",
+  "repository": { "type": "git", "url": "git+https://github.com/ricovigil1/warmwinter-sdk.git", "directory": "typescript" },
+  "bugs": { "url": "https://github.com/ricovigil1/warmwinter-sdk/issues" },
+  "engines": { "node": ">=18" },
+  "dependencies": {},
+  "devDependencies": { "typescript": "^5.4.0" }
+}
