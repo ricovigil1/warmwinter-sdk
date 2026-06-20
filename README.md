@@ -1,18 +1,36 @@
-# Warm Winter SDK — the 5-minute quickstart
+# warmwinter
 
-A thin wrapper around your AI/agent calls that answers one question before you
-spend on the expensive path: **is this cheap answer trustworthy enough to act on
-— or should you escalate, or abstain?** You keep executing; Warm Winter only
-judges, learns from the reported outcome, and sharpens the competence frontier
-for that kind of decision.
+**Your agent acts on its own — and you can't always tell when it's about to do
+something it shouldn't.** Warm Winter is a calibrated check you call *before* an
+action: it answers **act, escalate, or abstain** — and it abstains when it doesn't
+have the grounding to be sure, instead of guessing. You keep executing; it only
+judges, then learns from the outcome you report and gets sharper for that kind of
+decision.
 
-Two files, zero dependencies:
+```bash
+pip install warmwinter        # Python — stdlib only
+npm install warmwinter        # TypeScript / JS — zero deps
+```
 
-- `python/warmwinter.py` — stdlib `urllib`, drops into any Python 3.9+ project.
-- `typescript/warmwinter.ts` — built-in `fetch`, Node 18+ / browser / edge.
+```python
+from warmwinter import WarmWinter
+ww = WarmWinter(api_key="ww_...")   # mint a key on the dashboard
+
+# Should the cheap model answer, or escalate to the expensive one?
+d = ww.decide(domain="compute", decision_type="model_route",
+              stated_confidence=0.82, stakes="medium")
+answer = cheap_model(prompt) if d.verdict == "act" else big_model(prompt)
+ww.outcome(d.decision_id, "success" if ok else "failure")   # closes the loop
+```
+
+That's it — five lines to a calibrated verdict. It's seeded from public backtests
+so it's calibrated from request #1, and your own reported outcomes take over as
+they accumulate. We advise; **your code executes — the gate never sits in your
+execution path.**
 
 **Looking for a specific use case?** See [`RECIPES.md`](RECIPES.md) — worked patterns for
-RAG grounding, auto-merge/deploy, tool-call gating, and support-bot abstention.
+RAG grounding, auto-merge/deploy, tool-call gating, and support-bot abstention — and
+[runnable examples](https://github.com/ricovigil1/warmwinter-examples).
 
 ---
 
