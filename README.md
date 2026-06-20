@@ -34,6 +34,29 @@ RAG grounding, auto-merge/deploy, tool-call gating, and support-bot abstention �
 
 ---
 
+## One gate, many decisions
+
+It's the same five lines every time — you only change `domain` and `decision_type`.
+The gate fits **any repeated decision that later gets a measurable outcome**:
+
+- **Cut model cost** — is the cheap model trustworthy enough here, or escalate?
+  (`model_route`)
+- **Auto-merge / auto-deploy** — ship this agent's change unattended, or hold for
+  review? CI is the verifier. (`auto_merge`)
+- **Tool calls** — safe to execute, or stop and ask a human? Stakes scale with
+  reversibility. (`tool:<name>`)
+- **RAG** — is the retrieval grounded enough to answer, or abstain instead of
+  guess? (`rag_answer`)
+- **Support / outbound** — auto-resolve the ticket or send the message, or route
+  to a human? Reopen / reply is the verifier. (`support_reply`)
+- **…and anything shaped like that** — moderation (publish vs. review), data
+  extraction (trust vs. flag), anomaly flags (act vs. escalate), multi-agent (does
+  A trust B's output). One calibrated `act / escalate / abstain`, learned per cell.
+
+You don't wire five integrations — you wire the gate once and name the decision.
+
+---
+
 ## Live API base
 
 The SDK defaults to **`https://api.warmwinter.io`** (the canonical, host-agnostic
