@@ -1,0 +1,59 @@
+name: publish
+
+# Verifiable supply chain: publishes the SDKs on a GitHub Release with provenance,
+# so anyone can confirm a package was built from THIS repo and not tampered with.
+#
+# ── One-time setup (per registry) ────────────────────────────────────────────
+# PyPI (Trusted Publishing — no token needed):
+#   pypi.org → your project → Settings → Publishing → "Add a pending publisher"
+#     Owner: ricovigil1 · Repo: warmwinter-sdk · Workflow: publish.yml
+#     Environment: (leave blank)
+# npm (provenance — needs a token):
+#   Add repo secret NPM_TOKEN = a granular Automation token with "Bypass 2FA".
+#
+# Then: bump the version in python/pyproject.toml + typescript/package.json (+ the
+# __version__/VERSION in source), and cut a GitHub Release. This runs automatically.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  pypi:
+    name: PyPI (trusted publishing)
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write          # OIDC — no API token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install build
+      - run: python -m build
+        working-directory: python
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist
+
+  npm:
+    name: npm (provenance)
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write          # provenance attestation
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm install
+        working-directory: typescript
+      - run: npm publish --provenance --access public
+        working-directory: typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

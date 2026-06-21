@@ -169,6 +169,36 @@ We advise; your system executes. The gate never sits in your execution path.
 
 ---
 
+## Security & data handling
+
+The whole product is *trust*, so here's exactly what happens to your data — no fine print.
+
+**What leaves your environment (and what doesn't).**
+- The **SDK `decide()` / `outcome()` path sends only decision *metadata*** — `domain`,
+  `decision_type`, your `stated_confidence`, `stakes`, and the outcome you report.
+  **Your prompts and model outputs never leave your process.** This is the safe default.
+- The optional **gateway** (`base_url` swap) is different: your prompts *transit* our
+  infrastructure and we hold your provider key for the call. We are **prompt-blind** —
+  we never store prompt or response bodies, only the decision metadata above — but if
+  you're privacy-sensitive, use the SDK `decide()` path (or self-host), not the proxy.
+
+**Don't send us secrets or personal data.** `context`, `candidate_action`, and
+`observed` are free-form and *are* stored on the decision record. Put only what
+identifies the decision in them — never API keys, credentials, or PII.
+
+**Zero dependencies, auditable.** The SDK is two small files (stdlib `urllib` /
+built-in `fetch`) with **no third-party packages** — nothing transitive to trust, and
+you can read the whole thing in a few minutes.
+
+**It's advisory, not a guarantee.** A verdict is *calibrated* — it abstains on calls
+it hasn't earned — but it is not infallible. Keep your own guardrails; treat `act` as
+"trustworthy enough," not "certified safe." You remain the decision-maker.
+
+**Your keys.** Gate keys are stored hashed (we can't recover the plaintext) and shown
+once. Rotate or revoke any time: `DELETE /api/v1/gate/keys/{id}`.
+
+---
+
 ## Install & try
 
 ```bash
