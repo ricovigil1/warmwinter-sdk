@@ -22,6 +22,16 @@ const answer = await ww.guard({
 });
 ```
 
+Every decision prints a prompt-blind verdict line:
+
+```text
+[warmwinter] ACT | compute/model_route | verified | medium stakes
+```
+
+Only decision coordinates and gate metadata are logged—never prompts, context,
+candidate actions, or outputs. Pass `logVerdicts: false` to silence it, or
+`logger: (line) => appLogger.info(line)` to use your application logger.
+
 Or drive the halves yourself with `decide(...)` / `outcome(...)`.
 
 Seamless alternative: point your existing OpenAI/Anthropic client's `baseURL`

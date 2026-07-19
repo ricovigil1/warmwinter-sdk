@@ -23,6 +23,11 @@ answer = cheap_model(prompt) if d.verdict == "act" else big_model(prompt)
 ww.outcome(d.decision_id, "success" if ok else "failure")   # closes the loop
 ```
 
+Each decision emits one branded, prompt-blind line such as
+`[warmwinter] ACT | compute/model_route | verified | medium stakes`. It contains
+only decision coordinates and gate metadata—never prompts or outputs—and can be
+disabled or routed through your application logger.
+
 That's it — five lines to a calibrated verdict. It's seeded from public backtests
 so it's calibrated from request #1, and your own reported outcomes take over as
 they accumulate. We advise; **your code executes — the gate never sits in your

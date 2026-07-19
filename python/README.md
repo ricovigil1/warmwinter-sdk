@@ -23,6 +23,16 @@ answer = ww.guard(
 )
 ```
 
+Every decision prints a prompt-blind verdict line:
+
+```text
+[warmwinter] ACT | compute/model_route | verified | medium stakes
+```
+
+Only decision coordinates and gate metadata are logged—never prompts, context,
+candidate actions, or outputs. Pass `log_verdicts=False` to silence it, or
+`logger=my_logger.info` to use your application logger.
+
 Or drive the two halves yourself with `decide(...)` and `outcome(...)`. See the
 module docstring for the full surface.
 

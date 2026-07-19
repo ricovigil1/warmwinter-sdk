@@ -21,7 +21,7 @@
  *   await ww.outcome(d.decisionId, answerWasGood ? "success" : "failure");
  */
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.2.0";
 
 export type Verdict = "act" | "escalate" | "abstain";
 export type CellState = "verified" | "provisional" | "ungrounded";
@@ -51,6 +51,10 @@ export interface WarmWinterOptions {
   apiKey: string;
   baseUrl?: string;
   timeoutMs?: number;
+  /** Emit one prompt-blind branded line for each verdict. Defaults to true. */
+  logVerdicts?: boolean;
+  /** Replace console.info with an application logger. */
+  logger?: (message: string) => void;
 }
 
 const DEFAULT_BASE_URL = "https://api.warmwinter.io";
@@ -59,12 +63,24 @@ export class WarmWinter {
   private apiKey: string;
   private baseUrl: string;
   private timeoutMs: number;
+  private logVerdicts: boolean;
+  private logger: (message: string) => void;
 
   constructor(opts: WarmWinterOptions) {
     if (!opts.apiKey) throw new Error("apiKey is required (mint one at /api/v1/gate/keys)");
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
     this.timeoutMs = opts.timeoutMs ?? 10_000;
+    this.logVerdicts = opts.logVerdicts ?? true;
+    this.logger = opts.logger ?? console.info;
+  }
+
+  private logDecision(decision: Decision, domain: string, decisionType: string): void {
+    if (!this.logVerdicts) return;
+    this.logger(
+      `[warmwinter] ${decision.verdict.toUpperCase()} | ${domain}/${decisionType} | ` +
+      `${decision.cellState} | ${decision.stakes} stakes`,
+    );
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -107,7 +123,7 @@ export class WarmWinter {
       idempotency_key: args.idempotencyKey,
       on_ungrounded: args.onUngrounded,
     });
-    return {
+    const decision: Decision = {
       decisionId: r.decision_id,
       verdict: r.verdict,
       cellState: r.cell_state,
@@ -118,6 +134,8 @@ export class WarmWinter {
       cell: r.cell ?? {},
       replayed: r.replayed ?? false,
     };
+    this.logDecision(decision, args.domain, args.decisionType);
+    return decision;
   }
 
   /** Close the loop so the cell sharpens. */
