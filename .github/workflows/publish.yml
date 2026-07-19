@@ -17,6 +17,9 @@ name: publish
 on:
   release:
     types: [published]
+  # Recovery path for an npm-only retry after registry/OIDC configuration.
+  # PyPI is intentionally skipped on manual runs because versions are immutable.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,6 +27,7 @@ permissions:
 jobs:
   pypi:
     name: PyPI (trusted publishing)
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       id-token: write          # OIDC — no API token
@@ -48,16 +52,17 @@ jobs:
       id-token: write          # provenance attestation
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
-      - run: npm install
+          package-manager-cache: false
+      - run: npm ci
         working-directory: typescript
       - run: npm test
         working-directory: typescript
-      - run: npm publish --provenance --access public
+      # npm 11.5.1+ on Node 24 automatically exchanges GitHub's OIDC token and
+      # emits provenance for this public package/repository.
+      - run: npm publish --access public
         working-directory: typescript
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
