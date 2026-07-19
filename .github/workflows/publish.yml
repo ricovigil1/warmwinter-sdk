@@ -33,6 +33,8 @@ jobs:
         with:
           python-version: "3.x"
       - run: pip install build
+      - run: python -m unittest discover -v
+        working-directory: python
       - run: python -m build
         working-directory: python
       - uses: pypa/gh-action-pypi-publish@release/v1
@@ -52,6 +54,8 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
       - run: npm install
+        working-directory: typescript
+      - run: npm test
         working-directory: typescript
       - run: npm publish --provenance --access public
         working-directory: typescript

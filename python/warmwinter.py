@@ -36,7 +36,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = ["WarmWinter", "Decision", "WarmWinterError", "DEFAULT_BASE_URL", "__version__"]
 
 DEFAULT_BASE_URL = "https://api.warmwinter.io"
@@ -68,14 +68,27 @@ class Decision:
 
 
 class WarmWinter:
-    def __init__(self, api_key: str, base_url: str = DEFAULT_BASE_URL, timeout: float = 10.0):
+    def __init__(self, api_key: str, base_url: str = DEFAULT_BASE_URL, timeout: float = 10.0,
+                 log_verdicts: bool = True,
+                 logger: Optional[Callable[[str], None]] = None):
         if not api_key:
             raise ValueError("api_key is required (mint one at /api/v1/gate/keys)")
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.log_verdicts = log_verdicts
+        self.logger = logger or print
         self._policy: Optional[dict] = None      # cached decision boundary (local mode)
         self._buffer: list = []                  # outcomes pending a flush
+
+    def _log_decision(self, decision: Decision, domain: str, decision_type: str) -> None:
+        """Emit a prompt-blind branded verdict line. Never include context or actions."""
+        if not self.log_verdicts:
+            return
+        self.logger(
+            f"[warmwinter] {decision.verdict.upper()} | {domain}/{decision_type} | "
+            f"{decision.cell_state} | {decision.stakes} stakes"
+        )
 
     # ── low-level ──────────────────────────────────────────────────────────────
     def _post(self, path: str, body: dict) -> dict:
@@ -114,7 +127,7 @@ class WarmWinter:
             if v is not None:
                 body[k] = v
         r = self._post("/api/v1/gate/decide", body)
-        return Decision(
+        decision = Decision(
             decision_id=r["decision_id"], verdict=r["verdict"], cell_state=r["cell_state"],
             calibrated_confidence=r.get("calibrated_confidence"),
             stated_confidence=r.get("stated_confidence", stated_confidence),
@@ -122,6 +135,8 @@ class WarmWinter:
             reasons=r.get("reasons", []), cell=r.get("cell", {}),
             replayed=r.get("replayed", False),
         )
+        self._log_decision(decision, domain, decision_type)
+        return decision
 
     def outcome(self, decision_id: str, outcome: str,
                 observed: Optional[dict] = None) -> dict:
@@ -130,6 +145,17 @@ class WarmWinter:
         if observed is not None:
             body["observed"] = observed
         return self._post("/api/v1/gate/outcome", body)
+
+    def outcome_by_ref(self, commit_sha: str, outcome: str,
+                       observed: Optional[dict] = None,
+                       decision_type: Optional[str] = None) -> dict:
+        """Resolve a decision by commit SHA from CI or a deploy health check."""
+        body = {"commit_sha": commit_sha, "outcome": outcome}
+        if observed is not None:
+            body["observed"] = observed
+        if decision_type is not None:
+            body["decision_type"] = decision_type
+        return self._post("/api/v1/gate/outcome/by-ref", body)
 
     def frontier(self) -> dict:
         """This account's live competence map (+ the cold-start backtest seed)."""
@@ -152,12 +178,16 @@ class WarmWinter:
             self.pull_policy()
         p = self._policy
         state = p.get("default_state", "ungrounded")
+        max_stakes = "high"
         for c in p.get("cells", []):
             if c["domain"] == domain and c["decision_type"] == decision_type:
                 state = c["state"]
+                max_stakes = c.get("max_stakes", "high")
                 break
         if state == "ungrounded" and on_ungrounded == "abstain":
             return "abstain"
+        if state == "verified" and stakes == "high" and max_stakes != "high":
+            return "escalate"
         return p["stakes_rule"][state][stakes]
 
     def report_local(self, *, domain: str, decision_type: str,
