@@ -64,21 +64,17 @@ You don't wire five integrations — you wire the gate once and name the decisio
 
 ## Live API base
 
-The SDK defaults to **`https://api.warmwinter.io`** (the canonical, host-agnostic
-endpoint). The service currently runs at `https://warmwinter-backend.onrender.com`, and
-`api.warmwinter.io` is a CNAME to it — so once that DNS is live the default just works.
+The SDK defaults to **`https://api.warmwinter.io`**, the canonical public API
+endpoint.
 
-If you're trying it before the custom domain is set up (or self-hosting), point the SDK
-at the backend explicitly:
+For self-hosting or local development, override the API origin explicitly:
 
 ```python
-WarmWinter(api_key="ww_...", base_url="https://warmwinter-backend.onrender.com")
+WarmWinter(api_key="ww_...", base_url="https://your-api.example.com")
 ```
 ```ts
-new WarmWinter({ apiKey: "ww_...", baseUrl: "https://warmwinter-backend.onrender.com" })
+new WarmWinter({ apiKey: "ww_...", baseUrl: "https://your-api.example.com" })
 ```
-
-(First request may take ~50s if the free-tier server is asleep.)
 
 ---
 

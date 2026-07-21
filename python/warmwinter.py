@@ -161,10 +161,10 @@ class WarmWinter:
         """This account's live competence map (+ the cold-start backtest seed)."""
         return self._request("GET", "/api/v1/gate/frontier", None)
 
-    # ── local-decide mode (Phase 3 — decide at the edge, learn in batches) ───────
+    # ── local-decide mode — decide at the edge, learn in batches ────────────────
     # Pull the policy ONCE, then decide() in-process at ~microsecond latency with
-    # no per-call round-trip (serves billions of agents); buffer outcomes and flush
-    # them in one batch. The policy ships states only, never calibration (G6).
+    # no per-call round-trip; buffer outcomes and flush them in one batch. The
+    # policy ships states only, never calibration.
     def pull_policy(self) -> dict:
         """Fetch + cache the signed decision boundary. Call once, then periodically."""
         self._policy = self._request("GET", "/api/v1/gate/policy", None)
