@@ -154,7 +154,7 @@ export class WarmWinter {
 
   /** Empirical lower-tail risk from supplied observations; no population forecast. */
   async consultTailRisk(args: ConsultationContext & {
-    losses: number[]; alpha: number; lossUnit: string;
+    losses: number[]; alpha: number; lossUnit: "tasks" | "seconds" | "items";
     sampleBasis: "reported_observations" | "simulation" | "hypothesis";
   }): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/gate/consultations", {
@@ -199,7 +199,7 @@ export class WarmWinter {
   async consultScenarios(args: ConsultationContext & {
     scenarios: Array<{ scenario_ref: string; losses: number[]; overhead_loss: number }>;
     baselineRef: string; horizonRef: string; alpha: number;
-    lossUnit: string; scenarioBasis: "reported_observations" | "simulation" | "hypothesis";
+    lossUnit: "tasks" | "seconds" | "items"; scenarioBasis: "simulation" | "hypothesis";
     generatingModelRef: string; generatingModelVersion: string;
     generatingSeed: number | null;
   }): Promise<Record<string, unknown>> {
@@ -217,8 +217,8 @@ export class WarmWinter {
 
   /** Describe event resolution times with censoring, not a forecast. */
   async consultResolutionTime(args: ConsultationContext & {
-    observations: Array<Record<string, unknown>>;
-    horizons: number[]; timeUnit: string; cohortRef: string; eventRef: string;
+    observations: Array<{ case_ref: string; duration: number; event: 0 | 1 }>;
+    horizons: number[]; timeUnit: "seconds" | "minutes" | "hours" | "days"; cohortRef: string; eventRef: string;
     sampleBasis: "reported_observations" | "simulation" | "hypothesis";
   }): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/gate/consultations", {
