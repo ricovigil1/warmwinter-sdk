@@ -126,6 +126,81 @@ class WarmWinter:
             "task_ref": task_ref, "run_id": run_id,
         })
 
+    def consult_conservation(self, *, inflows: list, outflows: list,
+                             generation: list, consumption: list,
+                             rate_unit: str, source_ref: str, usefulness_confidence: float,
+                             task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Native flow accounting. All categories explicit; [] declares no flows.
+
+        Result is descriptive and caller-sourced, with no execution authority.
+        """
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "conservation-balance", "inflows": inflows, "outflows": outflows,
+            "generation": generation, "consumption": consumption, "rate_unit": rate_unit,
+            "source_ref": source_ref, "usefulness_confidence": usefulness_confidence,
+            "task_ref": task_ref, "run_id": run_id,
+        })
+
+    def consult_tail_risk(self, *, losses: list, alpha: float, loss_unit: str,
+                          sample_basis: str, source_ref: str, usefulness_confidence: float,
+                          task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Empirical CVaR for supplied losses; no population forecast or action authority."""
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "empirical-tail-risk", "losses": losses, "alpha": alpha,
+            "loss_unit": loss_unit, "sample_basis": sample_basis, "source_ref": source_ref,
+            "usefulness_confidence": usefulness_confidence, "task_ref": task_ref, "run_id": run_id,
+        })
+
+    def consult_calibration(self, *, pairs: list, cohort_ref: str, sample_basis: str,
+                            source_ref: str, usefulness_confidence: float,
+                            task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Describe supplied {confidence, outcome} pairs; no calibration certification."""
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "cohort-calibration", "pairs": pairs, "cohort_ref": cohort_ref,
+            "sample_basis": sample_basis, "source_ref": source_ref,
+            "usefulness_confidence": usefulness_confidence, "task_ref": task_ref, "run_id": run_id,
+        })
+
+    def consult_value_of_information(self, *, branches: list, current_best_utility: float,
+                                      evidence_cost: float, utility_unit: str, scenario_ref: str,
+                                      scenario_basis: str, source_ref: str, usefulness_confidence: float,
+                                      task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Modeled evidence value minus declared all-in cost; no spending/action authority."""
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "value-of-information", "branches": branches,
+            "current_best_utility": current_best_utility, "evidence_cost": evidence_cost,
+            "utility_unit": utility_unit, "scenario_ref": scenario_ref, "scenario_basis": scenario_basis,
+            "source_ref": source_ref, "usefulness_confidence": usefulness_confidence,
+            "task_ref": task_ref, "run_id": run_id,
+        })
+
+    def consult_scenarios(self, *, scenarios: list, baseline_ref: str, horizon_ref: str,
+                          alpha: float, loss_unit: str, scenario_basis: str,
+                          generating_model_ref: str, generating_model_version: str,
+                          generating_seed: Optional[int], source_ref: str, usefulness_confidence: float,
+                          task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Compare supplied loss samples plus overhead; does not execute/validate their generator."""
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "scenario-risk-comparison", "scenarios": scenarios,
+            "baseline_ref": baseline_ref, "horizon_ref": horizon_ref, "alpha": alpha,
+            "loss_unit": loss_unit, "scenario_basis": scenario_basis,
+            "generating_model_ref": generating_model_ref, "generating_model_version": generating_model_version,
+            "generating_seed": generating_seed, "source_ref": source_ref,
+            "usefulness_confidence": usefulness_confidence, "task_ref": task_ref, "run_id": run_id,
+        })
+
+    def consult_resolution_time(self, *, observations: list, horizons: list, time_unit: str,
+                                cohort_ref: str, event_ref: str, sample_basis: str,
+                                source_ref: str, usefulness_confidence: float,
+                                task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Describe right-censored follow-up; no verified resolution or population forecast."""
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "resolution-time", "observations": observations, "horizons": horizons,
+            "time_unit": time_unit, "cohort_ref": cohort_ref, "event_ref": event_ref,
+            "sample_basis": sample_basis, "source_ref": source_ref,
+            "usefulness_confidence": usefulness_confidence, "task_ref": task_ref, "run_id": run_id,
+        })
+
     def consultation_feedback(self, consultation_id: str, usefulness: str) -> dict:
         """Report usefulness only; never an independently verified task success."""
         from urllib.parse import quote

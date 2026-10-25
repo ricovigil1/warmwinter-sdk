@@ -28,6 +28,14 @@ export type CellState = "verified" | "provisional" | "ungrounded";
 export type Stakes = "low" | "medium" | "high";
 export type Outcome = "success" | "failure" | "abstained";
 
+export interface ConsultationContext {
+  sourceRef: string;
+  usefulnessConfidence: number;
+  taskRef?: string;
+  runId?: string;
+}
+
+
 export interface Decision {
   decisionId: string;
   verdict: Verdict;
@@ -126,6 +134,99 @@ export class WarmWinter {
       usefulness_confidence: args.usefulnessConfidence,
       task_ref: args.taskRef ?? null,
       run_id: args.runId ?? null,
+    });
+  }
+
+  /** Native conservation-balance calculation on supplied flows, not a physical qualification. */
+  async consultConservation(args: ConsultationContext & {
+    inflows: number[]; outflows: number[]; generation: number[]; consumption: number[];
+    rateUnit: "tasks/second" | "tasks/minute" | "tasks/hour" | "items/hour";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "conservation-balance",
+      inflows: args.inflows, outflows: args.outflows,
+      generation: args.generation, consumption: args.consumption,
+      rate_unit: args.rateUnit, source_ref: args.sourceRef,
+      usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Empirical lower-tail risk from supplied observations; no population forecast. */
+  async consultTailRisk(args: ConsultationContext & {
+    losses: number[]; alpha: number; lossUnit: "tasks" | "seconds" | "items";
+    sampleBasis: "reported_observations" | "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "empirical-tail-risk", losses: args.losses, alpha: args.alpha,
+      loss_unit: args.lossUnit, sample_basis: args.sampleBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Diagnose supplied forecast/outcome pairs without certifying a model. */
+  async consultCalibration(args: ConsultationContext & {
+    pairs: Array<{ confidence: number; outcome: number }>;
+    cohortRef: string; sampleBasis: "reported_observations" | "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "cohort-calibration", pairs: args.pairs,
+      cohort_ref: args.cohortRef, sample_basis: args.sampleBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Modeled net value of declared evidence, not an authorized decision. */
+  async consultValueOfInformation(args: ConsultationContext & {
+    branches: Array<{ branch_ref: string; probability: number; best_utility: number }>;
+    currentBestUtility: number; evidenceCost: number;
+    utilityUnit: "utility_points" | "seconds_saved";
+    scenarioRef: string; scenarioBasis: "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "value-of-information", branches: args.branches,
+      current_best_utility: args.currentBestUtility,
+      evidence_cost: args.evidenceCost, utility_unit: args.utilityUnit,
+      scenario_ref: args.scenarioRef, scenario_basis: args.scenarioBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Compare supplied modeled loss samples; does not generate scenarios. */
+  async consultScenarios(args: ConsultationContext & {
+    scenarios: Array<{ scenario_ref: string; losses: number[]; overhead_loss: number }>;
+    baselineRef: string; horizonRef: string; alpha: number;
+    lossUnit: "tasks" | "seconds" | "items"; scenarioBasis: "simulation" | "hypothesis";
+    generatingModelRef: string; generatingModelVersion: string;
+    generatingSeed: number | null;
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "scenario-risk-comparison", scenarios: args.scenarios,
+      baseline_ref: args.baselineRef, horizon_ref: args.horizonRef,
+      alpha: args.alpha, loss_unit: args.lossUnit, scenario_basis: args.scenarioBasis,
+      generating_model_ref: args.generatingModelRef,
+      generating_model_version: args.generatingModelVersion,
+      generating_seed: args.generatingSeed, source_ref: args.sourceRef,
+      usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Describe event resolution times with censoring, not a forecast. */
+  async consultResolutionTime(args: ConsultationContext & {
+    observations: Array<{ case_ref: string; duration: number; event: 0 | 1 }>;
+    horizons: number[]; timeUnit: "seconds" | "minutes" | "hours" | "days"; cohortRef: string; eventRef: string;
+    sampleBasis: "reported_observations" | "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "resolution-time", observations: args.observations,
+      horizons: args.horizons, time_unit: args.timeUnit, cohort_ref: args.cohortRef,
+      event_ref: args.eventRef, sample_basis: args.sampleBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
     });
   }
 
