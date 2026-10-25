@@ -36,7 +36,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = ["WarmWinter", "Decision", "WarmWinterError", "DEFAULT_BASE_URL", "__version__"]
 
 DEFAULT_BASE_URL = "https://api.warmwinter.io"
