@@ -111,6 +111,27 @@ class WarmWinter:
                 pass
             raise WarmWinterError(e.code, detail) from None
 
+    def consultation_capabilities(self) -> dict:
+        """Discover admitted calculations using an explicit consultation-only grant."""
+        return self._request("GET", "/api/v1/gate/consultations/capabilities", None)
+
+    def consult_queue(self, *, arrival_rate: float, service_capacity: float,
+                      rate_unit: str, source_ref: str, usefulness_confidence: float,
+                      task_ref: Optional[str] = None, run_id: Optional[str] = None) -> dict:
+        """Descriptive native queue reading. No action authority or verified outcome."""
+        return self._post("/api/v1/gate/consultations", {
+            "capability": "queue-pressure", "arrival_rate": arrival_rate,
+            "service_capacity": service_capacity, "rate_unit": rate_unit,
+            "source_ref": source_ref, "usefulness_confidence": usefulness_confidence,
+            "task_ref": task_ref, "run_id": run_id,
+        })
+
+    def consultation_feedback(self, consultation_id: str, usefulness: str) -> dict:
+        """Report usefulness only; never an independently verified task success."""
+        from urllib.parse import quote
+        return self._post("/api/v1/gate/consultations/" + quote(consultation_id, safe="")
+                          + "/feedback", {"usefulness": usefulness})
+
     # ── the gate ───────────────────────────────────────────────────────────────
     def decide(self, *, domain: str, decision_type: str, stated_confidence: float,
                context: Optional[dict] = None, stakes: Optional[str] = None,

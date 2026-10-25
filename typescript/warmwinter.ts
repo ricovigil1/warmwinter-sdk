@@ -102,6 +102,42 @@ export class WarmWinter {
     }
   }
 
+  /** Discover admitted calculations using an explicit consultation-only grant. */
+  async consultationCapabilities(): Promise<Record<string, unknown>> {
+    return this.request("GET", "/api/v1/gate/consultations/capabilities");
+  }
+
+  /** Descriptive native queue reading; preserve the complete snake_case server envelope. */
+  async consultQueue(args: {
+    arrivalRate: number;
+    serviceCapacity: number;
+    rateUnit: "tasks/second" | "tasks/minute" | "tasks/hour";
+    sourceRef: string;
+    usefulnessConfidence: number;
+    taskRef?: string;
+    runId?: string;
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "queue-pressure",
+      arrival_rate: args.arrivalRate,
+      service_capacity: args.serviceCapacity,
+      rate_unit: args.rateUnit,
+      source_ref: args.sourceRef,
+      usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null,
+      run_id: args.runId ?? null,
+    });
+  }
+
+  /** Report usefulness only; never an independently verified task success. */
+  async consultationFeedback(
+    consultationId: string,
+    usefulness: "useful" | "already_known" | "incorrect" | "missing_context",
+  ): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations/" + encodeURIComponent(consultationId)
+      + "/feedback", { usefulness });
+  }
+
   /** Ask whether a proposed action is trustworthy enough to act on. */
   async decide(args: {
     domain: string;

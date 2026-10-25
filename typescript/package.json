@@ -17,7 +17,7 @@
   "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node test-logging.mjs",
+    "test": "npm run build && node test-logging.mjs && node --test test-consultation.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": ["llm", "agents", "ai", "routing", "calibration", "trust", "gateway"],

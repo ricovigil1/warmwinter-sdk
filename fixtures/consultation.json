@@ -1,0 +1,79 @@
+{
+  "request": {
+    "capability": "queue-pressure",
+    "arrival_rate": 8,
+    "service_capacity": 10,
+    "rate_unit": "tasks/minute",
+    "source_ref": "synthetic:rates",
+    "usefulness_confidence": 0.6,
+    "task_ref": "synthetic:task",
+    "run_id": "synthetic-run"
+  },
+  "capabilities": {
+    "capabilities": [
+      {
+        "name": "queue-pressure",
+        "promotion_state": "approved"
+      }
+    ],
+    "advisory_only": true,
+    "authority_granted": false,
+    "max_requests_per_minute": 60
+  },
+  "reading": {
+    "schema_version": "ww-consultation/v1",
+    "consultation_id": "synthetic-consultation",
+    "capability": "queue-pressure",
+    "model_version": "synthetic-version",
+    "epistemic_status": "derived",
+    "input_evidence": "self_reported",
+    "applicability": "Synthetic task population and measurement window.",
+    "assumptions": [
+      "Capacity is caller supplied."
+    ],
+    "units": {
+      "inputs": "tasks/minute",
+      "utilization": "dimensionless",
+      "pressure": "dimensionless"
+    },
+    "provenance": {
+      "source_ref": "synthetic:rates",
+      "input_hash": "synthetic-hash"
+    },
+    "uncertainty": {
+      "input_uncertainty": "unknown",
+      "interval": null
+    },
+    "resource_limits": {
+      "native_calls": 1,
+      "provider_calls": 0,
+      "measured_joules": null
+    },
+    "inputs": {
+      "arrival_rate": 8,
+      "service_capacity": 10
+    },
+    "analysis": {
+      "utilization": 0.8,
+      "pressure": 1.6094379124341005,
+      "regime": "stable",
+      "queue_stable": true,
+      "nonfinite_values": {}
+    },
+    "task_ref": "synthetic:task",
+    "run_id": "synthetic-run",
+    "runtime": {
+      "identity_assurance": "account_bound_runtime_label"
+    },
+    "gate_verdict": "abstain",
+    "advisory_only": true,
+    "authority_granted": false,
+    "outcome_status": "pending_independent_outcome"
+  },
+  "feedback": {
+    "horizon_id": "synthetic-horizon",
+    "evidence_strength": "self_reported",
+    "authority_granted": false,
+    "outcome_status": "pending_independent_outcome"
+  }
+}
