@@ -21,7 +21,7 @@
  *   await ww.outcome(d.decisionId, answerWasGood ? "success" : "failure");
  */
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 export type Verdict = "act" | "escalate" | "abstain";
 export type CellState = "verified" | "provisional" | "ungrounded";

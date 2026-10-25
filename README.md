@@ -213,9 +213,10 @@ With a gate key (step 1 above), confirm it talks to the live gate:
 python -c "from warmwinter import WarmWinter; print(WarmWinter(api_key='ww_...').frontier())"
 ```
 
-**Source-only consultation helpers:** see the [Python](python/README.md#native-computational-consultation-source-only)
-and [TypeScript](typescript/README.md#native-computational-consultation-source-only)
-examples. These helpers are not in published 0.2.0. This repository remains the
+**Native consultation (0.3.0):** see the [Python](python/README.md#native-computational-consultation)
+and [TypeScript](typescript/README.md#native-computational-consultation)
+examples. Requires 0.3.0 or the current source checkout; published 0.2.0 does not
+include these helpers. Registry availability follows an accepted release. This repository remains the
 published-package source; the backend repository's SDK copy supports its own
 coupled development and tests. This increment does not synchronize unrelated
 contextual extensions or establish an automatic cross-repository release policy.

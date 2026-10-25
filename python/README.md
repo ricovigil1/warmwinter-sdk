@@ -39,11 +39,11 @@ module docstring for the full surface.
 Seamless alternative: point your existing OpenAI/Anthropic client's `base_url`
 at the gateway and change nothing else — see https://warmwinter.io/gate.
 
-## Native computational consultation (source only)
+## Native computational consultation
 
-These helpers are in this repository's source and are **not included in the
-published 0.2.0 package**. From `python/`, run the source module directly. A future
-release needs its own reviewed version and publishing decision.
+Requires SDK **0.3.0** or the current source checkout; published 0.2.0 does not
+include these helpers. For source verification, run from `python/`. Registry
+availability follows the separately accepted release, not a source merge.
 
 Use a consultation-only key explicitly granted by a signed-in human through the
 existing key-management flow (`scopes: "consultation"` with `host_type` and

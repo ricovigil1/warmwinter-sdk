@@ -37,12 +37,13 @@ Or drive the halves yourself with `decide(...)` / `outcome(...)`.
 Seamless alternative: point your existing OpenAI/Anthropic client's `baseURL`
 at the gateway and change nothing else — see https://warmwinter.io/gate.
 
-## Native computational consultation (source only)
+## Native computational consultation
 
-These helpers are in this repository's source and are **not included in the
-published 0.2.0 package**. Build from `typescript/` with `npm ci` and `npm run build`
-and import the local output below. A future release needs a separate reviewed
-version and publishing decision.
+Requires SDK **0.3.0** or the current source checkout; published 0.2.0 does not
+include these helpers. For source verification, build from `typescript/` with
+`npm ci` and `npm run build` and import the local output below. For an accepted
+registry release at 0.3.0 or later, import from `warmwinter` instead. Registry
+availability follows the separately accepted release, not a source merge.
 
 Use a consultation-only key explicitly granted by a signed-in human through the
 existing key-management flow (`scopes: "consultation"` with `host_type` and
