@@ -48,6 +48,36 @@ export interface Decision {
   replayed: boolean;
 }
 
+/** Canonical run data returned by the existing Observatory endpoint. */
+export interface CanonicalRun {
+  id: string;
+  external_run_ref: string;
+  replayed: boolean;
+  events: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+/** Caller-supplied metadata only; never prompts, source, or tool payloads. */
+export interface RunEventInput {
+  eventType: "assignment" | "action" | "artifact" | "verification" | "gate" |
+    "outcome" | "usefulness" | "handoff" | "complete" | "fail";
+  idempotencyKey: string;
+  parentEventId?: string;
+  targetInstanceId?: string;
+  taskRef?: string;
+  artifactRef?: string;
+  verificationRef?: string;
+  receiptRef?: string;
+  interventionRef?: string;
+  gateDecisionId?: string;
+  executionStatus?: "started" | "succeeded" | "failed" | "rolled_back";
+  verificationStatus?: "passed" | "failed" | "inconclusive" | "not_run";
+  outcome?: number;
+  usefulness?: "useful" | "already_known" | "incorrect" | "missing_context";
+  payloadHash?: string;
+  occurredAt?: string;
+}
+
 export class WarmWinterError extends Error {
   constructor(public status: number, public detail: string) {
     super(`[${status}] ${detail}`);
@@ -231,12 +261,79 @@ export class WarmWinter {
   }
 
   /** Report usefulness only; never an independently verified task success. */
+  /** Read a retained consultation owned by this exact grant. */
+  async consultation(id: string): Promise<Record<string, unknown>> {
+    return this.request("GET", `/api/v1/gate/consultations/${encodeURIComponent(id)}`);
+  }
+
   async consultationFeedback(
     consultationId: string,
     usefulness: "useful" | "already_known" | "incorrect" | "missing_context",
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/gate/consultations/" + encodeURIComponent(consultationId)
       + "/feedback", { usefulness });
+  }
+
+  /**
+   * Start/replay a canonical Observatory run. Requires a runtime-bound Gate key;
+   * a consultation-only key cannot start runs. The server validates identity.
+   * Use a stable externalRunRef across retries.
+   */
+  async run(args: {
+    objectiveRef: string;
+    authorityRef: string;
+    externalRunRef: string;
+    assignmentRef?: string;
+    agentRef?: string;
+    version?: string;
+    authorityScope?: string;
+    retentionDays?: number;
+  }): Promise<CanonicalRun> {
+    if (!args.objectiveRef || !args.authorityRef || !args.externalRunRef)
+      throw new Error("objectiveRef, authorityRef and externalRunRef are required");
+    if (args.retentionDays !== undefined && (
+      !Number.isInteger(args.retentionDays) || args.retentionDays < 1 || args.retentionDays > 3650
+    )) throw new Error("retentionDays must be an integer within 1..3650");
+    return this.request<CanonicalRun>("POST", "/api/v1/observatory/agent-runs/start", {
+      objective_ref: args.objectiveRef, authority_ref: args.authorityRef,
+      external_run_ref: args.externalRunRef, assignment_ref: args.assignmentRef,
+      agent_ref: args.agentRef, version: args.version,
+      authority_scope: args.authorityScope, retention_days: args.retentionDays ?? 30,
+    });
+  }
+
+  /**
+   * Append a metadata-only event to a run owned by this key. Outcomes entered
+   * through this SDK are self-reported and always WEAK, never independent proof.
+   * Client verification is not the protected observer's verified label.
+   */
+  async runEvent(runId: string, event: RunEventInput): Promise<{
+    event_id: string; event_type: string; replayed: boolean;
+  }> {
+    if (!runId || !event.idempotencyKey) throw new Error("runId and idempotencyKey are required");
+    if (event.eventType === "outcome" && (event.outcome === undefined ||
+        !Number.isFinite(event.outcome) || event.outcome < 0 || event.outcome > 1))
+      throw new Error("outcome events require an outcome between 0 and 1");
+    return this.request<{event_id: string; event_type: string; replayed: boolean}>("POST",
+      `/api/v1/observatory/agent-runs/${encodeURIComponent(runId)}/events/ingest`, {
+        event_type: event.eventType,
+        idempotency_key: event.idempotencyKey,
+        parent_event_id: event.parentEventId,
+        target_instance_id: event.targetInstanceId,
+        task_ref: event.taskRef,
+        artifact_ref: event.artifactRef,
+        verification_ref: event.verificationRef,
+        receipt_ref: event.receiptRef,
+        intervention_ref: event.interventionRef,
+        gate_decision_id: event.gateDecisionId,
+        execution_status: event.executionStatus,
+        verification_status: event.verificationStatus,
+        outcome: event.outcome,
+        label_strength: event.eventType === "outcome" ? "weak" : undefined,
+        usefulness: event.usefulness,
+        payload_hash: event.payloadHash,
+        occurred_at: event.occurredAt,
+      });
   }
 
   /** Ask whether a proposed action is trustworthy enough to act on. */
@@ -303,6 +400,8 @@ export class WarmWinter {
     verify?: (result: T) => boolean;
     stakes?: Stakes;
     context?: Record<string, unknown>;
+    /** Link this decision to an existing canonical run before executing either path. */
+    runId?: string;
   }): Promise<T> {
     const d = await this.decide({
       domain: args.domain,
@@ -311,6 +410,13 @@ export class WarmWinter {
       stakes: args.stakes,
       context: args.context,
     });
+    if (args.runId !== undefined) {
+      // If the run is not owned by this same key, fail before executing.
+      await this.runEvent(args.runId, {
+        eventType: "gate", idempotencyKey: `gate:${d.decisionId}`,
+        gateDecisionId: d.decisionId,
+      });
+    }
     const tookCheap = d.verdict === "act";
     const result = await (tookCheap ? args.cheap() : args.escalate());
     if (args.verify) {

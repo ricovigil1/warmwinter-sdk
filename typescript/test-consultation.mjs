@@ -21,6 +21,13 @@ function setup(t, response = fixture.reading, status = 200) {
 
 const args = { arrivalRate: 8, serviceCapacity: 10, rateUnit: "tasks/minute", sourceRef: "synthetic:rates", usefulnessConfidence: 0.6 };
 
+test("retained consultation reads preserve grant scope and encode the ID", async t => {
+  const {client,calls}=setup(t);
+  await client.consultation("reading/with space");
+  assert.equal(calls[0].method,"GET");
+  assert.equal(calls[0].url,base+"/api/v1/gate/consultations/reading%2Fwith%20space");
+});
+
 test("discovery uses explicit key and preserves limits", async t => {
   const { client, calls } = setup(t, fixture.capabilities);
   assert.deepEqual(await client.consultationCapabilities(), fixture.capabilities);

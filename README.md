@@ -220,3 +220,12 @@ include these helpers. Registry availability follows an accepted release. This r
 published-package source; the backend repository's SDK copy supports its own
 coupled development and tests. This increment does not synchronize unrelated
 contextual extensions or establish an automatic cross-repository release policy.
+
+**Unreleased product qualification:** this development branch adds canonical
+`run` / `run_event` (TypeScript `runEvent`), `guard(run_id=...)` / `guard({runId})`,
+all seven bounded consultations and retained `consultation(id)` reads. These
+features require this source checkout until a separately approved package
+release. A runtime-bound Gate key starts runs; a separate consultation-only key
+discovers and computes advisory readings. SDK outcomes are weak self-reports.
+Reference backtests are not account-earned verification. No package was published
+or version advanced by this work.

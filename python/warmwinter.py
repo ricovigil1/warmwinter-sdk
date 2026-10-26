@@ -201,6 +201,11 @@ class WarmWinter:
             "usefulness_confidence": usefulness_confidence, "task_ref": task_ref, "run_id": run_id,
         })
 
+    def consultation(self, consultation_id: str) -> dict:
+        """Read a retained consultation owned by this exact grant."""
+        from urllib.parse import quote
+        return self._request("GET", "/api/v1/gate/consultations/" + quote(consultation_id, safe=""), None)
+
     def consultation_feedback(self, consultation_id: str, usefulness: str) -> dict:
         """Report usefulness only; never an independently verified task success."""
         from urllib.parse import quote
@@ -208,6 +213,62 @@ class WarmWinter:
                           + "/feedback", {"usefulness": usefulness})
 
     # ── the gate ───────────────────────────────────────────────────────────────
+    def run(self, *, objective_ref: str, authority_ref: str, external_run_ref: str,
+            assignment_ref: Optional[str] = None, agent_ref: Optional[str] = None,
+            version: Optional[str] = None, authority_scope: Optional[str] = None,
+            retention_days: int = 30) -> dict:
+        """Open/replay one canonical run with an account-owned, runtime-bound Gate key.
+
+        A consultation-only key and an unbound Gate key cannot start this run.
+        external_run_ref is caller-stable across retries. The server derives the
+        runtime identity and enforces scope; no local execution authority is added.
+        """
+        if not (objective_ref and authority_ref and external_run_ref):
+            raise ValueError("objective_ref, authority_ref and external_run_ref are required")
+        if not 1 <= retention_days <= 3650:
+            raise ValueError("retention_days must be within 1..3650")
+        return self._post("/api/v1/observatory/agent-runs/start", {
+            "objective_ref": objective_ref,
+            "authority_ref": authority_ref,
+            "external_run_ref": external_run_ref,
+            "assignment_ref": assignment_ref,
+            "agent_ref": agent_ref,
+            "version": version,
+            "authority_scope": authority_scope,
+            "retention_days": retention_days,
+        })
+
+    def run_event(self, run_id: str, event_type: str, *,
+                  idempotency_key: str, **fields: Any) -> dict:
+        """Append one metadata-only event to a run owned by this same host key.
+
+        Caller-reported outcomes are ALWAYS weak here. No SDK caller can claim
+        independent strong verification; the protected observer owns that proof.
+        Supply stable idempotency_key values across retries. A caller-provided
+        verification status remains a report, not independent validation.
+        """
+        if not run_id or not idempotency_key:
+            raise ValueError("run_id and idempotency_key are required")
+        allowed = {
+            "parent_event_id", "target_instance_id", "task_ref", "artifact_ref",
+            "verification_ref", "receipt_ref", "intervention_ref",
+            "gate_decision_id", "execution_status", "verification_status",
+            "outcome", "usefulness", "payload_hash", "occurred_at",
+        }
+        unknown = set(fields) - allowed - {"label_strength"}
+        if unknown:
+            raise ValueError("Unsupported event metadata fields: " + ", ".join(sorted(unknown)))
+        if event_type == "outcome":
+            if fields.get("label_strength") not in (None, "weak"):
+                raise ValueError("SDK-reported outcomes cannot claim strong verification")
+            fields["label_strength"] = "weak"
+        elif "label_strength" in fields:
+            raise ValueError("label_strength belongs only to outcome events")
+        return self._post(
+            "/api/v1/observatory/agent-runs/" + urllib.parse.quote(run_id, safe="") + "/events/ingest",
+            {"event_type": event_type, "idempotency_key": idempotency_key, **fields},
+        )
+
     def decide(self, *, domain: str, decision_type: str, stated_confidence: float,
                context: Optional[dict] = None, stakes: Optional[str] = None,
                candidate_action: Optional[str] = None,
@@ -311,7 +372,8 @@ class WarmWinter:
     def guard(self, *, domain: str, decision_type: str, stated_confidence: float,
               cheap: Callable[[], Any], escalate: Callable[[], Any],
               verify: Optional[Callable[[Any], bool]] = None,
-              stakes: Optional[str] = None, context: Optional[dict] = None) -> Any:
+              stakes: Optional[str] = None, context: Optional[dict] = None,
+              run_id: Optional[str] = None) -> Any:
         """Gate, run the chosen path, and (if `verify` is given) auto-report the
         outcome — the whole loop in one call.
 
@@ -323,12 +385,17 @@ class WarmWinter:
           )
 
         `act` → run `cheap`; anything else → run `escalate`. When `verify` is
-        supplied we report success/failure so the cell learns; otherwise resolve
+        supplied we self-report (weak evidence) success/failure; otherwise resolve
         it yourself with `outcome(...)`.
         """
         d = self.decide(domain=domain, decision_type=decision_type,
                         stated_confidence=stated_confidence, stakes=stakes,
                         context=context)
+        if run_id is not None:
+            # Same runtime-bound key must own the decision and run. If this link
+            # fails, do not execute the action under an unrecorded decision.
+            self.run_event(run_id, "gate", idempotency_key="gate:" + d.decision_id,
+                           gate_decision_id=d.decision_id)
         took_cheap = d.act
         result = (cheap if took_cheap else escalate)()
         if verify is not None:
