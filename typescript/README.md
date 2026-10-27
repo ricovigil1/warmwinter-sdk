@@ -50,9 +50,9 @@ independently verified task outcomes. Discovery with the authenticated
 `consultation_capabilities` / `consultationCapabilities` call remains authoritative.
 ## Native computational consultation
 
-Published SDK **0.3.0** supports queue-pressure only. This development branch adds all seven consultation helpers; they are not in an installed package until a separately approved SDK release. For source verification, build from `typescript/` with
+Published SDK **0.3.0** supports queue-pressure only. This **0.4.0 release candidate is unpublished** and adds all seven consultation helpers plus canonical run linkage. For source verification, build from `typescript/` with
 `npm ci` and `npm run build` and import the local output below. For an accepted
-registry release at 0.3.0 or later, import from `warmwinter` instead. Registry
+registry release at 0.4.0 or later, import from `warmwinter` instead. Registry
 availability follows the separately accepted release, not a source merge.
 
 Use a consultation-only key explicitly granted by a signed-in human through the

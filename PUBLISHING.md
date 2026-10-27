@@ -38,7 +38,17 @@ result before any retry: published versions are immutable and the two registry
 jobs can finish independently. A source merge or green local test is not a
 published-package receipt.
 
-## 0.3.0 scope
+## Prepared 0.4.0 scope (unpublished)
+
+The existing product-qualification #7 carrier prepares all seven bounded
+consultations and canonical Gate-to-Observatory run linkage. Python project/module
+and npm project/lock/export/version tests use 0.4.0 consistently; public registries
+still serve 0.3.0. Offline wheel/sdist/npm-pack and installed-artifact contracts
+do not authorize publication or establish deployed-backend compatibility.
+Preserve authenticated grant/scope/revocation checks, weak caller outcomes and
+metadata-only lineage. No new execution or attestation authority is included.
+
+## Historical 0.3.0 scope
 
 Adds native consultation discovery, queue-pressure reading and self-reported
 usefulness feedback in both clients. Existing Gate methods, grant/revocation

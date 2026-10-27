@@ -23,7 +23,7 @@ class SdkTests(unittest.TestCase):
         return client
 
     def test_version(self):
-        self.assertEqual(__version__, "0.3.0")
+        self.assertEqual(__version__, "0.4.0")
 
     def test_verdict_line_is_branded_and_prompt_blind(self):
         output = io.StringIO()
@@ -53,7 +53,7 @@ class SdkTests(unittest.TestCase):
         )
         self.assertEqual(lines, [])
 
-    def test_outcome_by_ref_uses_strong_label_endpoint(self):
+    def test_outcome_by_ref_uses_reference_endpoint_without_asserting_strength(self):
         calls = []
         client = WarmWinter("ww_test", log_verdicts=False)
         client._post = lambda path, body: calls.append((path, body)) or {"ok": True}
