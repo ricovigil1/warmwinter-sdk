@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { VERSION, WarmWinter } from "./dist/warmwinter.js";
 
-assert.equal(VERSION, "0.3.0");
+assert.equal(VERSION, "0.4.0");
 
 globalThis.fetch = async () => new Response(JSON.stringify({
   decision_id: "dec_test",
@@ -40,4 +40,4 @@ await silent.decide({
 });
 assert.deepEqual(silentLines, []);
 
-console.log("SDK 0.3.0 checks passed");
+console.log(`SDK ${VERSION} checks passed`);

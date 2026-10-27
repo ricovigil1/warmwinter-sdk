@@ -21,6 +21,13 @@ function setup(t, response = fixture.reading, status = 200) {
 
 const args = { arrivalRate: 8, serviceCapacity: 10, rateUnit: "tasks/minute", sourceRef: "synthetic:rates", usefulnessConfidence: 0.6 };
 
+test("retained consultation reads preserve grant scope and encode the ID", async t => {
+  const {client,calls}=setup(t);
+  await client.consultation("reading/with space");
+  assert.equal(calls[0].method,"GET");
+  assert.equal(calls[0].url,base+"/api/v1/gate/consultations/reading%2Fwith%20space");
+});
+
 test("discovery uses explicit key and preserves limits", async t => {
   const { client, calls } = setup(t, fixture.capabilities);
   assert.deepEqual(await client.consultationCapabilities(), fixture.capabilities);
@@ -50,6 +57,53 @@ test("overload null, unknown uncertainty and extensions survive", async t => {
   reading.future_metadata = { unknown: null };
   const { client, lines } = setup(t, reading);
   assert.deepEqual(await client.consultQueue(args), reading);
+  assert.deepEqual(lines, []);
+});
+
+test("all seven consultation helpers preserve the exact wire capability and optional lineage", async t => {
+  const { client, calls, lines } = setup(t);
+  const common = { sourceRef: "synthetic:parity", usefulnessConfidence: 0.7 };
+  const cases = [
+    ["conservation-balance", () => client.consultConservation({
+      inflows: [2], outflows: [1], generation: [], consumption: [],
+      rateUnit: "items/hour", ...common,
+    })],
+    ["empirical-tail-risk", () => client.consultTailRisk({
+      losses: [1, 3, 5], alpha: 0.9, lossUnit: "seconds", sampleBasis: "hypothesis", ...common,
+    })],
+    ["cohort-calibration", () => client.consultCalibration({
+      pairs: [{ confidence: 0.8, outcome: 1 }], cohortRef: "cohort:test",
+      sampleBasis: "hypothesis", ...common,
+    })],
+    ["value-of-information", () => client.consultValueOfInformation({
+      branches: [{ branch_ref: "evidence:a", probability: 1, best_utility: 10 }],
+      currentBestUtility: 8, evidenceCost: 1, utilityUnit: "utility_points",
+      scenarioRef: "scenario:test", scenarioBasis: "hypothesis", ...common,
+    })],
+    ["scenario-risk-comparison", () => client.consultScenarios({
+      scenarios: [{ scenario_ref: "base", losses: [2], overhead_loss: 0 },
+                  { scenario_ref: "alt", losses: [1], overhead_loss: 1 }],
+      baselineRef: "base", horizonRef: "horizon:task", alpha: 0.9,
+      lossUnit: "seconds", scenarioBasis: "hypothesis",
+      generatingModelRef: "not_applicable", generatingModelVersion: "not_applicable",
+      generatingSeed: null, ...common,
+    })],
+    ["resolution-time", () => client.consultResolutionTime({
+      observations: [{ case_ref: "case:a", duration: 1.5, event: 1 }],
+      horizons: [1, 7], timeUnit: "days", cohortRef: "cohort:test",
+      eventRef: "event:test", sampleBasis: "hypothesis", ...common,
+    })],
+  ];
+  for (const [capability, invoke] of cases) {
+    assert.deepEqual(await invoke(), fixture.reading);
+    const actual = calls.at(-1);
+    assert.equal(actual.method, "POST");
+    assert.equal(actual.url, base + "/api/v1/gate/consultations");
+    assert.equal(actual.body.capability, capability);
+    assert.equal(actual.body.source_ref, "synthetic:parity");
+    assert.equal(actual.body.task_ref, null);
+    assert.equal(actual.body.run_id, null);
+  }
   assert.deepEqual(lines, []);
 });
 

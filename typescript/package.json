@@ -1,6 +1,6 @@
 {
   "name": "warmwinter",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "TypeScript/JavaScript SDK for the Warm Winter trust gate — is this AI/agent action trustworthy enough to act on, or escalate?",
   "license": "MIT",
   "author": "Warm Winter",

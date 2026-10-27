@@ -37,12 +37,22 @@ Or drive the halves yourself with `decide(...)` / `outcome(...)`.
 Seamless alternative: point your existing OpenAI/Anthropic client's `baseURL`
 at the gateway and change nothing else — see https://warmwinter.io/gate.
 
+
+
+The current source exposes `consult_queue`, `consult_conservation`, `consult_tail_risk`,
+`consult_calibration`, `consult_value_of_information`, `consult_scenarios`,
+and `consult_resolution_time` (TypeScript: corresponding `consultQueue`,
+`consultConservation`, `consultTailRisk`, `consultCalibration`,
+`consultValueOfInformation`, `consultScenarios`, `consultResolutionTime`).
+Each requires a separate **consultation-only** key; calls persist advisory
+evidence and cannot certify a runtime, grant execution authority, or establish
+independently verified task outcomes. Discovery with the authenticated
+`consultation_capabilities` / `consultationCapabilities` call remains authoritative.
 ## Native computational consultation
 
-Requires SDK **0.3.0** or the current source checkout; published 0.2.0 does not
-include these helpers. For source verification, build from `typescript/` with
+Published SDK **0.3.0** supports queue-pressure only. This **0.4.0 release candidate is unpublished** and adds all seven consultation helpers plus canonical run linkage. For source verification, build from `typescript/` with
 `npm ci` and `npm run build` and import the local output below. For an accepted
-registry release at 0.3.0 or later, import from `warmwinter` instead. Registry
+registry release at 0.4.0 or later, import from `warmwinter` instead. Registry
 availability follows the separately accepted release, not a source merge.
 
 Use a consultation-only key explicitly granted by a signed-in human through the

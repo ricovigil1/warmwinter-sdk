@@ -21,12 +21,20 @@
  *   await ww.outcome(d.decisionId, answerWasGood ? "success" : "failure");
  */
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 
 export type Verdict = "act" | "escalate" | "abstain";
 export type CellState = "verified" | "provisional" | "ungrounded";
 export type Stakes = "low" | "medium" | "high";
 export type Outcome = "success" | "failure" | "abstained";
+
+export interface ConsultationContext {
+  sourceRef: string;
+  usefulnessConfidence: number;
+  taskRef?: string;
+  runId?: string;
+}
+
 
 export interface Decision {
   decisionId: string;
@@ -38,6 +46,36 @@ export interface Decision {
   reasons: string[];
   cell: Record<string, unknown>;
   replayed: boolean;
+}
+
+/** Canonical run data returned by the existing Observatory endpoint. */
+export interface CanonicalRun {
+  id: string;
+  external_run_ref: string;
+  replayed: boolean;
+  events: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+/** Caller-supplied metadata only; never prompts, source, or tool payloads. */
+export interface RunEventInput {
+  eventType: "assignment" | "action" | "artifact" | "verification" | "gate" |
+    "outcome" | "usefulness" | "handoff" | "complete" | "fail";
+  idempotencyKey: string;
+  parentEventId?: string;
+  targetInstanceId?: string;
+  taskRef?: string;
+  artifactRef?: string;
+  verificationRef?: string;
+  receiptRef?: string;
+  interventionRef?: string;
+  gateDecisionId?: string;
+  executionStatus?: "started" | "succeeded" | "failed" | "rolled_back";
+  verificationStatus?: "passed" | "failed" | "inconclusive" | "not_run";
+  outcome?: number;
+  usefulness?: "useful" | "already_known" | "incorrect" | "missing_context";
+  payloadHash?: string;
+  occurredAt?: string;
 }
 
 export class WarmWinterError extends Error {
@@ -129,13 +167,173 @@ export class WarmWinter {
     });
   }
 
+  /** Native conservation-balance calculation on supplied flows, not a physical qualification. */
+  async consultConservation(args: ConsultationContext & {
+    inflows: number[]; outflows: number[]; generation: number[]; consumption: number[];
+    rateUnit: "tasks/second" | "tasks/minute" | "tasks/hour" | "items/hour";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "conservation-balance",
+      inflows: args.inflows, outflows: args.outflows,
+      generation: args.generation, consumption: args.consumption,
+      rate_unit: args.rateUnit, source_ref: args.sourceRef,
+      usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Empirical lower-tail risk from supplied observations; no population forecast. */
+  async consultTailRisk(args: ConsultationContext & {
+    losses: number[]; alpha: number; lossUnit: "tasks" | "seconds" | "items";
+    sampleBasis: "reported_observations" | "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "empirical-tail-risk", losses: args.losses, alpha: args.alpha,
+      loss_unit: args.lossUnit, sample_basis: args.sampleBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Diagnose supplied forecast/outcome pairs without certifying a model. */
+  async consultCalibration(args: ConsultationContext & {
+    pairs: Array<{ confidence: number; outcome: number }>;
+    cohortRef: string; sampleBasis: "reported_observations" | "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "cohort-calibration", pairs: args.pairs,
+      cohort_ref: args.cohortRef, sample_basis: args.sampleBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Modeled net value of declared evidence, not an authorized decision. */
+  async consultValueOfInformation(args: ConsultationContext & {
+    branches: Array<{ branch_ref: string; probability: number; best_utility: number }>;
+    currentBestUtility: number; evidenceCost: number;
+    utilityUnit: "utility_points" | "seconds_saved";
+    scenarioRef: string; scenarioBasis: "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "value-of-information", branches: args.branches,
+      current_best_utility: args.currentBestUtility,
+      evidence_cost: args.evidenceCost, utility_unit: args.utilityUnit,
+      scenario_ref: args.scenarioRef, scenario_basis: args.scenarioBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Compare supplied modeled loss samples; does not generate scenarios. */
+  async consultScenarios(args: ConsultationContext & {
+    scenarios: Array<{ scenario_ref: string; losses: number[]; overhead_loss: number }>;
+    baselineRef: string; horizonRef: string; alpha: number;
+    lossUnit: "tasks" | "seconds" | "items"; scenarioBasis: "simulation" | "hypothesis";
+    generatingModelRef: string; generatingModelVersion: string;
+    generatingSeed: number | null;
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "scenario-risk-comparison", scenarios: args.scenarios,
+      baseline_ref: args.baselineRef, horizon_ref: args.horizonRef,
+      alpha: args.alpha, loss_unit: args.lossUnit, scenario_basis: args.scenarioBasis,
+      generating_model_ref: args.generatingModelRef,
+      generating_model_version: args.generatingModelVersion,
+      generating_seed: args.generatingSeed, source_ref: args.sourceRef,
+      usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
+  /** Describe event resolution times with censoring, not a forecast. */
+  async consultResolutionTime(args: ConsultationContext & {
+    observations: Array<{ case_ref: string; duration: number; event: 0 | 1 }>;
+    horizons: number[]; timeUnit: "seconds" | "minutes" | "hours" | "days"; cohortRef: string; eventRef: string;
+    sampleBasis: "reported_observations" | "simulation" | "hypothesis";
+  }): Promise<Record<string, unknown>> {
+    return this.request("POST", "/api/v1/gate/consultations", {
+      capability: "resolution-time", observations: args.observations,
+      horizons: args.horizons, time_unit: args.timeUnit, cohort_ref: args.cohortRef,
+      event_ref: args.eventRef, sample_basis: args.sampleBasis,
+      source_ref: args.sourceRef, usefulness_confidence: args.usefulnessConfidence,
+      task_ref: args.taskRef ?? null, run_id: args.runId ?? null,
+    });
+  }
+
   /** Report usefulness only; never an independently verified task success. */
+  /** Read a retained consultation owned by this exact grant. */
+  async consultation(id: string): Promise<Record<string, unknown>> {
+    return this.request("GET", `/api/v1/gate/consultations/${encodeURIComponent(id)}`);
+  }
+
   async consultationFeedback(
     consultationId: string,
     usefulness: "useful" | "already_known" | "incorrect" | "missing_context",
   ): Promise<Record<string, unknown>> {
     return this.request("POST", "/api/v1/gate/consultations/" + encodeURIComponent(consultationId)
       + "/feedback", { usefulness });
+  }
+
+  /**
+   * Start/replay a canonical Observatory run. Requires a runtime-bound Gate key;
+   * a consultation-only key cannot start runs. The server validates identity.
+   * Use a stable externalRunRef across retries.
+   */
+  async run(args: {
+    objectiveRef: string;
+    authorityRef: string;
+    externalRunRef: string;
+    assignmentRef?: string;
+    agentRef?: string;
+    version?: string;
+    authorityScope?: string;
+    retentionDays?: number;
+  }): Promise<CanonicalRun> {
+    if (!args.objectiveRef || !args.authorityRef || !args.externalRunRef)
+      throw new Error("objectiveRef, authorityRef and externalRunRef are required");
+    if (args.retentionDays !== undefined && (
+      !Number.isInteger(args.retentionDays) || args.retentionDays < 1 || args.retentionDays > 3650
+    )) throw new Error("retentionDays must be an integer within 1..3650");
+    return this.request<CanonicalRun>("POST", "/api/v1/observatory/agent-runs/start", {
+      objective_ref: args.objectiveRef, authority_ref: args.authorityRef,
+      external_run_ref: args.externalRunRef, assignment_ref: args.assignmentRef,
+      agent_ref: args.agentRef, version: args.version,
+      authority_scope: args.authorityScope, retention_days: args.retentionDays ?? 30,
+    });
+  }
+
+  /**
+   * Append a metadata-only event to a run owned by this key. Outcomes entered
+   * through this SDK are self-reported and always WEAK, never independent proof.
+   * Client verification is not the protected observer's verified label.
+   */
+  async runEvent(runId: string, event: RunEventInput): Promise<{
+    event_id: string; event_type: string; replayed: boolean;
+  }> {
+    if (!runId || !event.idempotencyKey) throw new Error("runId and idempotencyKey are required");
+    if (event.eventType === "outcome" && (event.outcome === undefined ||
+        !Number.isFinite(event.outcome) || event.outcome < 0 || event.outcome > 1))
+      throw new Error("outcome events require an outcome between 0 and 1");
+    return this.request<{event_id: string; event_type: string; replayed: boolean}>("POST",
+      `/api/v1/observatory/agent-runs/${encodeURIComponent(runId)}/events/ingest`, {
+        event_type: event.eventType,
+        idempotency_key: event.idempotencyKey,
+        parent_event_id: event.parentEventId,
+        target_instance_id: event.targetInstanceId,
+        task_ref: event.taskRef,
+        artifact_ref: event.artifactRef,
+        verification_ref: event.verificationRef,
+        receipt_ref: event.receiptRef,
+        intervention_ref: event.interventionRef,
+        gate_decision_id: event.gateDecisionId,
+        execution_status: event.executionStatus,
+        verification_status: event.verificationStatus,
+        outcome: event.outcome,
+        label_strength: event.eventType === "outcome" ? "weak" : undefined,
+        usefulness: event.usefulness,
+        payload_hash: event.payloadHash,
+        occurred_at: event.occurredAt,
+      });
   }
 
   /** Ask whether a proposed action is trustworthy enough to act on. */
@@ -202,6 +400,8 @@ export class WarmWinter {
     verify?: (result: T) => boolean;
     stakes?: Stakes;
     context?: Record<string, unknown>;
+    /** Link this decision to an existing canonical run before executing either path. */
+    runId?: string;
   }): Promise<T> {
     const d = await this.decide({
       domain: args.domain,
@@ -210,6 +410,13 @@ export class WarmWinter {
       stakes: args.stakes,
       context: args.context,
     });
+    if (args.runId !== undefined) {
+      // If the run is not owned by this same key, fail before executing.
+      await this.runEvent(args.runId, {
+        eventType: "gate", idempotencyKey: `gate:${d.decisionId}`,
+        gateDecisionId: d.decisionId,
+      });
+    }
     const tookCheap = d.verdict === "act";
     const result = await (tookCheap ? args.cheap() : args.escalate());
     if (args.verify) {
